@@ -81,6 +81,9 @@ pip install pygame
 ### Step 1. 啟動 Server
 
 ```sh
+ssh yatliou0423@linux1.cs.nycu.edu.tw
+輸入密碼
+cd hw3_np
 python server/main.py
 ```
 
