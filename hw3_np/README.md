@@ -91,6 +91,38 @@ python server/main.py
 - 建立 / 更新 `server/runtime_ports.json`
 - 偵測公網 / 內網 IP（供跨機 Demo 用）
 
+如果需要在其他server(windows)
+```sh
+$env:LOBBY_CONNECT_HOST="140.113.17.11"
+$env:LOBBY_CONNECT_PORT="12666"
+$env:DEV_CONNECT_HOST="140.113.17.11"
+$env:DEV_CONNECT_PORT="53899"
+python developer/developer_client.py
+```
+如果要取消
+```sh
+Remove-Item Env:LOBBY_CONNECT_HOST
+Remove-Item Env:LOBBY_CONNECT_PORT
+Remove-Item Env:DEV_CONNECT_HOST
+Remove-Item Env:DEV_CONNECT_PORT
+python developer/developer_client.py
+```
+如果需要在其他server(mac)
+```sh
+export LOBBY_CONNECT_HOST="140.113.17.11"
+export LOBBY_CONNECT_PORT="12666"
+export DEV_CONNECT_HOST="140.113.17.11"
+export DEV_CONNECT_PORT="53899"
+python developer/developer_client.py
+```
+如果要取消
+```sh
+unset LOBBY_CONNECT_HOST
+unset LOBBY_CONNECT_PORT
+unset DEV_CONNECT_HOST
+unset DEV_CONNECT_PORT
+python developer/developer_client.py
+```
 ### Step 2. 啟動開發者 Client
 
 ```sh
