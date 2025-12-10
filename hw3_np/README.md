@@ -58,8 +58,12 @@
   - GUI Tetris 需安裝 `pygame`
   - 其餘皆為 Python 標準函式庫
 
-### 安裝方式（建議虛擬環境）
-
+### 安裝方式
+基本上就是
+```sh
+pip install pygame
+```
+或是
 ```sh
 python -m venv .venv
 # macOS / Linux
@@ -172,7 +176,7 @@ Server 重啟時資料不會遺失（除非手動刪除 JSON）。
 ## 6. 重置與除錯小提示
 
 ### 重置系統狀態
-
+在系計中的server上
 1. 關閉所有 Server 與前台程式
 2. 刪除 `server/data/*.json`
 3. 清空 `server/uploaded_games/*` 與 `player/downloads/*`
