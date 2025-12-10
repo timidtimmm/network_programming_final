@@ -1,4 +1,4 @@
-# sample_games/rps/start_client.py - 完整修正版
+# developer/games/rps/start_client.py - 完整修正版
 
 import os, socket, json, sys, time
 import atexit
@@ -96,7 +96,7 @@ def main():
             print("等待失敗")
             return
 
-        print("對手已就緒！開始遊戲。")
+        print("對手已就緒！開始遊戲。若30秒沒出手將判輸。")
         print("(按 Ctrl+C 可隨時退出)")  # ✅ 提示用戶
 
         game_finished = False
