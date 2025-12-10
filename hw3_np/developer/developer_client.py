@@ -31,15 +31,32 @@ def validate_version(version: str):
 
 def _pick_dev_target():
     endpoint_cfg = CONFIG.get("developer_endpoint", {})
-    default_port = endpoint_cfg.get("port", 5501)
+    cfg_host = endpoint_cfg.get("host", "127.0.0.1")
+    cfg_port = endpoint_cfg.get("port", 5501)
 
-    # 若 config.json 有指定 server_ip，優先使用
+    # ---------- 0) ENV 最高優先 ----------
+    env_host = os.getenv("DEV_CONNECT_HOST")
+    env_port = os.getenv("DEV_CONNECT_PORT")
+    if env_host or env_port:
+        host = env_host or (SERVER_IP or cfg_host)
+        try:
+            port = int(env_port) if env_port else cfg_port
+        except ValueError:
+            port = cfg_port
+
+        # ✅ client 不能連 0.0.0.0
+        if host == "0.0.0.0":
+            pubs = CONFIG.get("public_hosts") or []
+            host = pubs[0] if pubs else "127.0.0.1"
+        return host, port
+
+    # ---------- 1) 遠端 demo：server_ip 優先 ----------
     if SERVER_IP:
-        return SERVER_IP, default_port
+        return SERVER_IP, cfg_port
 
-    # 若 runtime_ports.json 中有 developer_port，優先嘗試連到 localhost:developer_port
+    # ---------- 2) 本機開發：runtime ----------
     if SERVER_RUNTIME:
-        port = SERVER_RUNTIME.get("developer_port") or default_port
+        port = SERVER_RUNTIME.get("developer_port", cfg_port)
         try:
             s = socket.socket()
             s.settimeout(0.5)
@@ -47,14 +64,18 @@ def _pick_dev_target():
             s.close()
             return "127.0.0.1", port
         except OSError:
-            # 若 localhost 連不上，就退回 runtime_ports.json 的 host 或 config 的 host
-            host = SERVER_RUNTIME.get("dev_host") or endpoint_cfg.get("host", "127.0.0.1")
+            host = SERVER_RUNTIME.get("dev_host", cfg_host)
+            if host == "0.0.0.0":
+                host = "127.0.0.1"
             return host, port
 
-    # 沒有 runtime_ports.json，就使用 config.json 的 developer_endpoint
-    host = endpoint_cfg.get("host", "127.0.0.1")
-    port = endpoint_cfg.get("port", 5501)
-    return host, port
+    # ---------- 3) 最終 fallback：config ----------
+    host = cfg_host
+    if host == "0.0.0.0":
+        pubs = CONFIG.get("public_hosts") or []
+        host = pubs[0] if pubs else "127.0.0.1"
+    return host, cfg_port
+
 
 DEV_HOST, DEV_PORT = _pick_dev_target()
 
