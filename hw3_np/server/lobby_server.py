@@ -27,27 +27,42 @@ def _detect_local_ip_candidates():
     except Exception:
         pass
     return ips
+def _is_local_ip(ip: str) -> bool:
+    """
+    用 OS 來判斷這個 IP 是否屬於「本機」。
+    只要能 bind 成功，就代表這台機器真的擁有這個 IP。
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((ip, 0))
+        s.close()
+        return True
+    except OSError:
+        return False
 
 def pick_public_host(conf):
-    # 1) 若仍有人手動指定 public_host，就尊重它
-    manual = (conf.get("public_host") or "").strip()
+    # 1) 手動指定就尊重（也允許環境變數覆蓋，Demo 超穩）
+    manual = (os.getenv("PUBLIC_HOST") or conf.get("public_host") or "").strip()
     if manual:
         return manual
 
-    # 2) 用 public_hosts 清單比對本機偵測到的 IP
-    candidates = set(conf.get("public_hosts") or [])
-    local_ips = _detect_local_ip_candidates()
+    public_list = conf.get("public_hosts") or []
 
-    for ip in local_ips:
-        if ip in candidates:
+    # 2) ✅ 最重要：直接檢查哪個 140.113.17.1X 是本機擁有的
+    for ip in public_list:
+        if _is_local_ip(ip):
             return ip
 
-    # 3) 找不到吻合：保守退回
-    #    - 若你希望「找不到就用清單第一個」，可改這裡
-    if candidates:
-        return sorted(candidates)[0]
+    # 3) 退一步：用你原本 UDP trick 當備援
+    local_ips = _detect_local_ip_candidates()
+    for ip in local_ips:
+        if ip in set(public_list):
+            return ip
 
+    # 4) ❗不要再 fallback 到 sorted(...)[0] 了
+    #    否則你會把所有機器都宣告成 .11
     return "127.0.0.1"
+
 
 PUBLIC_HOST = pick_public_host(CONF)
 print(f"[Lobby] PUBLIC_HOST selected: {PUBLIC_HOST}", flush=True)
