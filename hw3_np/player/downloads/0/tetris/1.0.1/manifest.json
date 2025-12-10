@@ -1,9 +1,0 @@
-{
-  "name": "tetris",
-  "display_name": "Tetris (GUI)",
-  "type": "GUI",
-  "max_players": 2,
-  "entry_server": "start_server.py",
-  "entry_client": "start_client.py",
-  "description": "Two-player Tetris with spectators. GUI client uses pygame."
-}
