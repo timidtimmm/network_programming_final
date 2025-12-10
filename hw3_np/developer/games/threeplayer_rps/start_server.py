@@ -1,4 +1,4 @@
-# sample_games/rps3/start_server.py - 完整版本
+# developer/games/threeplayer_rps/start_server.py - 完整版本
 import os, socket, threading, json, time
 
 HOST = os.getenv("GAME_HOST", "127.0.0.1")
@@ -585,4 +585,5 @@ def serve():
         threading.Thread(target=handle, args=(c, a), daemon=True).start()
 
 if __name__ == "__main__":
+
     serve()
