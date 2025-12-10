@@ -15,6 +15,25 @@ def is_valid_ipv4(ip):
         return False
     parts = ip.split('.')
     return all(0 <= int(part) <= 255 for part in parts)
+def is_local_ip(ip: str) -> bool:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((ip, 0))
+        s.close()
+        return True
+    except OSError:
+        return False
+
+def pick_public_ip_from_list(conf):
+    manual = (conf.get("public_host") or "").strip()
+    if manual and is_valid_ipv4(manual):
+        return manual
+
+    for ip in (conf.get("public_hosts") or []):
+        if is_valid_ipv4(ip) and is_local_ip(ip):
+            return ip
+
+    return None
 
 def get_public_ip():
     """自動偵測公網 IP，並驗證結果"""
@@ -107,14 +126,19 @@ async def main():
     if dev_port == lobby_port:
         lobby_port = _pick_free_port(10000, 65535)
 
-    # ✅ 自動偵測公網 IP
-    config_public = CONF.get("public_host") or CONF.get("lobby_endpoint", {}).get("public_host")
-    
-    if config_public and config_public not in ("0.0.0.0", "127.0.0.1") and is_valid_ipv4(config_public):
-        public_ip = config_public
-        print(f"[Main] 使用 config.json 設定的公網 IP: {public_ip}")
+    picked = pick_public_ip_from_list(CONF)
+    if picked:
+        public_ip = picked
+        print(f"[Main] ✅ public_hosts 命中本機 IP: {public_ip}")
     else:
-        public_ip = get_public_ip()
+        # 真的找不到才用你原本的外網/route 偵測
+        config_public = CONF.get("public_host") or CONF.get("lobby_endpoint", {}).get("public_host")
+        if config_public and config_public not in ("0.0.0.0", "127.0.0.1") and is_valid_ipv4(config_public):
+            public_ip = config_public
+            print(f"[Main] 使用 config.json 設定的公網 IP: {public_ip}")
+        else:
+            public_ip = get_public_ip()
+
 
     # ✅ 如果是在本機測試，使用 127.0.0.1
     if public_ip.startswith("192.168.") or public_ip.startswith("10.") or public_ip.startswith("172."):
