@@ -1,0 +1,19 @@
+{
+  "server_host": "0.0.0.0",
+  "public_hosts": [
+  "140.113.17.11",
+  "140.113.17.12",
+  "140.113.17.13",
+  "140.113.17.14"
+  ],
+
+  "developer_endpoint": {
+    "host": "0.0.0.0"
+  },
+  "lobby_endpoint": {
+    "host": "0.0.0.0"
+  },
+
+  "data_dir": "server/storage",
+  "template_game_name": "rps"
+}

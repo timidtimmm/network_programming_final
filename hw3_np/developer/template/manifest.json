@@ -1,0 +1,9 @@
+{
+  "name": "my_game",
+  "display_name": "My Game",
+  "type": "CLI",
+  "max_players": 2,
+  "entry_server": "start_server.py",
+  "entry_client": "start_client.py",
+  "description": "Your awesome game"
+}
