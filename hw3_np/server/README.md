@@ -1,4 +1,5 @@
-server_modular/
+```text
+server/
 ├─ config.json                     # 端點設定（只需 host）
 ├─ server/
 │  ├─ main.py                      # 啟動器：分別啟動 DeveloperServer / LobbyServer
@@ -15,3 +16,4 @@ server_modular/
 │  │  ├─ rooms.json
 │  │  └─ tokens.json
 │  └─ uploaded_games/              # 上架遊戲實體檔（依名字/版本展開）
+```
