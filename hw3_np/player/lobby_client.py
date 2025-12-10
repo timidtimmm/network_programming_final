@@ -18,27 +18,43 @@ SERVER_RUNTIME = {}
 if runtime_path.exists():
     SERVER_RUNTIME = json.load(open(runtime_path, "r", encoding="utf-8"))
 
-def _pick_target(endpoint_key: str, rt_host_key: str, rt_port_key: str, default_port: int):
-    """
-    決定要連線到哪個 Server (host, port)
-
-    endpoint_key: "lobby_endpoint" 或 "developer_endpoint"
-    rt_host_key : runtime_ports.json 裡的 host 欄位名，例如 "lobby_host"
-    rt_port_key : runtime_ports.json 裡的 port 欄位名，例如 "lobby_port"
-    default_port: 預設 port（例如 5502 / 5501）
-    """
+def _pick_target(endpoint_key: str, rt_host_key: str, rt_port_key: str, default_port: int,
+                 env_host_key: str, env_port_key: str):
     endpoint_cfg = CONFIG.get(endpoint_key, {})
 
-    # 1) Demo / 助教模式：config.json 有 server_ip → 固定對那台機器
-    if SERVER_IP:
-        host = SERVER_IP
-        port = endpoint_cfg.get("port", default_port)
-        return host, port
+    # 0) ✅ ENV 覆蓋（最高優先）
+    env_host = os.getenv(env_host_key)
+    env_port = os.getenv(env_port_key)
+    if env_host and env_port:
+        try:
+            return env_host, int(env_port)
+        except:
+            pass
+    elif env_host and not env_port:
+        # 只給 host 時：port 先吃 runtime / config / default
+        if SERVER_RUNTIME:
+            port = SERVER_RUNTIME.get(rt_port_key) or endpoint_cfg.get("port", default_port)
+        else:
+            port = endpoint_cfg.get("port", default_port)
+        return env_host, port
+    elif env_port and not env_host:
+        # 只給 port 時：host 走後續決策（不建議但容錯）
+        try:
+            forced_port = int(env_port)
+        except:
+            forced_port = default_port
+    else:
+        forced_port = None
 
-    # 2) 本機開發：若有 runtime_ports.json，就用裡面的 port，並先試本機 127.0.0.1
+    # 1) ⭐ 有 runtime → 以 runtime port 為主
     if SERVER_RUNTIME:
-        port = SERVER_RUNTIME.get(rt_port_key) or endpoint_cfg.get("port", default_port)
-        # 先嘗試連 127.0.0.1:port（server 跑在同一台）
+        port = forced_port or SERVER_RUNTIME.get(rt_port_key) or endpoint_cfg.get("port", default_port)
+
+        # 1a) 若有 server_ip（遠端 demo），只覆蓋 host
+        if SERVER_IP:
+            return SERVER_IP, port
+
+        # 1b) 本機開發：先試 127.0.0.1
         try:
             s = socket.socket()
             s.settimeout(0.5)
@@ -46,18 +62,40 @@ def _pick_target(endpoint_key: str, rt_host_key: str, rt_port_key: str, default_
             s.close()
             return "127.0.0.1", port
         except OSError:
-            # 若本機沒 server，就用 runtime_ports.json 裡的 host
             host = SERVER_RUNTIME.get(rt_host_key) or endpoint_cfg.get("host", "127.0.0.1")
+            # 避免 client 連 0.0.0.0
+            if host == "0.0.0.0":
+                host = "127.0.0.1"
             return host, port
 
-    # 3) 最底線：只有 config.json → 用 endpoint 裡的 host/port
+    # 2) 沒 runtime 才走 server_ip + 固定 port
+    if SERVER_IP:
+        host = SERVER_IP
+        port = forced_port or endpoint_cfg.get("port", default_port)
+        return host, port
+
+    # 3) 最底線：只有 config endpoint
     host = endpoint_cfg.get("host", "127.0.0.1")
-    port = endpoint_cfg.get("port", default_port)
+    port = forced_port or endpoint_cfg.get("port", default_port)
+
+    # ✅ client 不能連 0.0.0.0 → 用 public_hosts[0] 或 127.0.0.1
+    if host == "0.0.0.0":
+        pubs = CONFIG.get("public_hosts") or []
+        host = pubs[0] if pubs else "127.0.0.1"
+
     return host, port
 
+
+
 # ✅ 這兩個就是 Lobby / Dev 實際連線使用的 host/port
-LOBBY_HOST, LOBBY_PORT = _pick_target("lobby_endpoint", "lobby_host", "lobby_port", 5502)
-DEV_HOST,   DEV_PORT   = _pick_target("developer_endpoint", "dev_host",   "developer_port", 5501)
+LOBBY_HOST, LOBBY_PORT = _pick_target(
+    "lobby_endpoint", "lobby_host", "lobby_port", 5502,
+    "LOBBY_CONNECT_HOST", "LOBBY_CONNECT_PORT"
+)
+DEV_HOST, DEV_PORT = _pick_target(
+    "developer_endpoint", "dev_host", "developer_port", 5501,
+    "DEV_CONNECT_HOST", "DEV_CONNECT_PORT"
+)
 
 def remote_logout(lobby_host, lobby_port, token):
     if not token:
@@ -564,6 +602,10 @@ async def async_main():
             # 登入選單
             while token is None:
                 clear_screen()
+                print("[DEBUG] SERVER_IP =", SERVER_IP)
+                print("[DEBUG] runtime exists =", runtime_path.exists())
+                print("[DEBUG] SERVER_RUNTIME =", SERVER_RUNTIME)
+                print("[DEBUG] LOBBY =", LOBBY_HOST, LOBBY_PORT)
                 print("=== Lobby 登入選單 ===")
                 print(f"(Lobby Server: {LOBBY_HOST}:{LOBBY_PORT})")
                 print("1) 註冊")
