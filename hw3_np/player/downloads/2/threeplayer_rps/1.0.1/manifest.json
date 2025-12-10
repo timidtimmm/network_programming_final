@@ -1,9 +1,0 @@
-{
-  "name": "3p_rps",
-  "display_name": "Rock Paper Scissors (3 Players)",
-  "type": "CLI",
-  "description": "Three-player rock-paper-scissors elimination game",
-  "entry_server": "start_server.py",
-  "entry_client": "start_client.py",
-  "max_players": 3
-}

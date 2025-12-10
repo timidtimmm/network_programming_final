@@ -1,9 +1,0 @@
-{
-  "name": "rps",
-  "display_name": "Rock Paper Scissors",
-  "type": "CLI",
-  "max_players": 2,
-  "entry_server": "start_server.py",
-  "entry_client": "start_client.py",
-  "description": "Simple 2-player RPS game"
-}
